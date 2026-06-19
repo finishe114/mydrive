@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ps" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>زما ډرایو</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #f0f4f8; color: #333; }
+
+  #loginScreen {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; height: 100vh; background: #1a73e8;
+  }
+  #loginScreen h1 { color: white; font-size: 28px; margin-bottom: 10px; }
+  #loginScreen p { color: #cce0ff; margin-bottom: 30px; font-size: 15px; }
+  #loginBtn {
+    background: white; color: #1a73e8; border: none;
+    padding: 14px 32px; border-radius: 30px; font-size: 17px;
+    cursor: pointer; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+
+  #mainScreen { display: none; }
+
+  header {
+    background: #1a73e8; color: white; padding: 16px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  header h2 { font-size: 20px; }
+  #logoutBtn {
+    background: rgba(255,255,255,0.2); color: white;
+    border: 1px solid white; padding: 6px 14px;
+    border-radius: 20px; cursor: pointer; font-size: 13px;
+  }
+
+  #storageBar {
+    background: white; padding: 12px 16px;
+    border-bottom: 1px solid #ddd; font-size: 13px; color: #555;
+  }
+  #storageBar .bar {
+    height: 8px; background: #e0e0e0; border-radius: 4px; margin-top: 6px;
+  }
+  #storageBar .fill {
+    height: 8px; background: #1a73e8; border-radius: 4px; width: 0%;
+    transition: width 0.5s;
+  }
+
+  #uploadArea {
+    margin: 16px; background: white; border: 2px dashed #1a73e8;
+    border-radius: 12px; padding: 20px; text-align: center; cursor: pointer;
+  }
+  #uploadArea p { color: #1a73e8; font-size: 15px; margin-bottom: 8px; }
+  #uploadArea input { display: none; }
+  #uploadBtn {
+    background: #1a73e8; color: white; border: none;
+    padding: 10px 24px; border-radius: 20px; font-size: 15px; cursor: pointer;
+  }
+
+  #progressDiv { margin: 0 16px 10px; display: none; }
+  #progressBar {
+    height: 10px; background: #e0e0e0; border-radius: 5px; overflow: hidden;
+  }
+  #progressFill {
+    height: 10px; background: #34a853; width: 0%; transition: width 0.3s;
+  }
+  #progressText { font-size: 13px; color: #555; margin-top: 4px; text-align: center; }
+
+  #fileList { margin: 0 16px; }
+  #fileList h3 { font-size: 16px; margin-bottom: 10px; color: #444; }
+
+  .fileItem {
+    background: white; border-radius: 10px; padding: 12px 14px;
+    margin-bottom: 10px; display: flex; align-items: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  }
+  .fileIcon { font-size: 28px; margin-left: 12px; }
+  .fileInfo { flex: 1; }
+  .fileName { font-size: 14px; font-weight: bold; color: #333; }
+  .fileSize { font-size: 12px; color: #888; margin-top: 2px; }
+  .fileActions { display: flex; gap: 8px; }
+  .dlBtn, .delBtn {
+    border: none; padding: 6px 12px; border-radius: 16px;
+    font-size: 12px; cursor: pointer;
+  }
+  .dlBtn { background: #e8f0fe; color: #1a73e8; }
+  .delBtn { background: #fce8e6; color: #d93025; }
+
+  #loading {
+    text-align: center; padding: 30px; color: #888; font-size: 15px;
+  }
+  #emptyMsg {
+    text-align: center; padding: 30px; color: #aaa; font-size: 15px; display: none;
+  }
+</style>
+</head>
+<body>
+
+<!-- د ننوتلو پاڼه -->
+<div id="loginScreen">
+  <h1>📁 زما ډرایو</h1>
+  <p>ستاسو شخصي فایل ذخیره</p>
+  <button id="loginBtn" onclick="signIn()">د ګوګل سره ننوتل</button>
+</div>
+
+<!-- اصلي پاڼه -->
+<div id="mainScreen">
+  <header>
+    <h2>📁 زما ډرایو</h2>
+    <button id="logoutBtn" onclick="signOut()">وتل</button>
+  </header>
+
+  <div id="storageBar">
+    <span id="storageText">ذخیره: لوډ کیږي...</span>
+    <div class="bar"><div class="fill" id="storageFill"></div></div>
+  </div>
+
+  <div id="uploadArea" onclick="document.getElementById('fileInput').click()">
+    <p>📤 فایل اپلوډ کړئ</p>
+    <p style="font-size:12px;color:#888;margin-bottom:12px">انځور، ویډیو، ګیم، هر فایل</p>
+    <button id="uploadBtn">فایل انتخاب کړئ</button>
+    <input type="file" id="fileInput" multiple onchange="uploadFiles(this.files)">
+  </div>
+
+  <div id="progressDiv">
+    <div id="progressBar"><div id="progressFill"></div></div>
+    <div id="progressText">اپلوډ کیږي...</div>
+  </div>
+
+  <div id="fileList">
+    <h3>ستاسو فایلونه</h3>
+    <div id="loading">⏳ فایلونه لوډ کیږي...</div>
+    <div id="emptyMsg">📭 هیڅ فایل نشته</div>
+    <div id="filesContainer"></div>
+  </div>
+</div>
+
+<!-- Google API -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+const CLIENT_ID = '149379347459-bbtb4ellefqgc8i3bb0f6cc78v0k62k4.apps.googleusercontent.com';
+const SCOPES = 'https://www.googleapis.com/auth/drive';
+
+let tokenClient;
+let accessToken = null;
+
+window.onload = function() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: (resp) => {
+      if (resp.access_token) {
+        accessToken = resp.access_token;
+        showMain();
+        loadFiles();
+        loadStorage();
+      }
+    }
+  });
+
+  // که مخکې ننوتلي وي
+  const saved = sessionStorage.getItem('gToken');
+  if (saved) {
+    accessToken = saved;
+    showMain();
+    loadFiles();
+    loadStorage();
+  }
+};
+
+function signIn() {
+  tokenClient.requestAccessToken();
+}
+
+function signOut() {
+  google.accounts.oauth2.revoke(accessToken);
+  accessToken = null;
+  sessionStorage.removeItem('gToken');
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('mainScreen').style.display = 'none';
+}
+
+function showMain() {
+  sessionStorage.setItem('gToken', accessToken);
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('mainScreen').style.display = 'block';
+}
+
+async function loadStorage() {
+  const r = await fetch('https://www.googleapis.com/drive/v3/about?fields=storageQuota', {
+    headers: { Authorization: 'Bearer ' + accessToken }
+  });
+  const d = await r.json();
+  const used = parseInt(d.storageQuota.usage);
+  const total = parseInt(d.storageQuota.limit);
+  const usedGB = (used / 1e9).toFixed(2);
+  const totalGB = (total / 1e9).toFixed(1);
+  const pct = Math.round((used / total) * 100);
+  document.getElementById('storageText').textContent =
+    `ذخیره: ${usedGB} GB له ${totalGB} GB (${pct}%)`;
+  document.getElementById('storageFill').style.width = pct + '%';
+}
+
+async function loadFiles() {
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('emptyMsg').style.display = 'none';
+  document.getElementById('filesContainer').innerHTML = '';
+
+  const r = await fetch(
+    'https://www.googleapis.com/drive/v3/files?pageSize=50&fields=files(id,name,size,mimeType,webContentLink)',
+    { headers: { Authorization: 'Bearer ' + accessToken } }
+  );
+  const d = await r.json();
+  document.getElementById('loading').style.display = 'none';
+
+  if (!d.files || d.files.length === 0) {
+    document.getElementById('emptyMsg').style.display = 'block';
+    return;
+  }
+
+  d.files.forEach(f => addFileToList(f));
+}
+
+function getIcon(mime) {
+  if (mime.startsWith('image/')) return '🖼️';
+  if (mime.startsWith('video/')) return '🎬';
+  if (mime.startsWith('audio/')) return '🎵';
+  if (mime.includes('pdf')) return '📄';
+  if (mime.includes('zip') || mime.includes('rar')) return '🗜️';
+  if (mime.includes('apk')) return '📱';
+  return '📁';
+}
+
+function formatSize(bytes) {
+  if (!bytes) return '';
+  const b = parseInt(bytes);
+  if (b > 1e9) return (b/1e9).toFixed(2) + ' GB';
+  if (b > 1e6) return (b/1e6).toFixed(1) + ' MB';
+  if (b > 1e3) return (b/1e3).toFixed(0) + ' KB';
+  return b + ' B';
+}
+
+function addFileToList(f) {
+  const div = document.createElement('div');
+  div.className = 'fileItem';
+  div.id = 'file_' + f.id;
+  div.innerHTML = `
+    <div class="fileIcon">${getIcon(f.mimeType)}</div>
+    <div class="fileInfo">
+      <div class="fileName">${f.name}</div>
+      <div class="fileSize">${formatSize(f.size)}</div>
+    </div>
+    <div class="fileActions">
+      ${f.webContentLink ? `<button class="dlBtn" onclick="window.open('${f.webContentLink}')">ډاونلوډ</button>` : ''}
+      <button class="delBtn" onclick="deleteFile('${f.id}')">حذف</button>
+    </div>
+  `;
+  document.getElementById('filesContainer').appendChild(div);
+}
+
+async function uploadFiles(files) {
+  for (let file of files) {
+    await uploadSingle(file);
+  }
+  loadStorage();
+}
+
+async function uploadSingle(file) {
+  document.getElementById('progressDiv').style.display = 'block';
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('progressText').textContent = file.name + ' اپلوډ کیږي...';
+
+  const meta = JSON.stringify({ name: file.name });
+  const form = new FormData();
+  form.append('metadata', new Blob([meta], { type: 'application/json' }));
+  form.append('file', file);
+
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,size,mimeType,webContentLink');
+    xhr.setRequestHeader('Authorization', 'Bearer ' + accessToken);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        const pct = Math.round((e.loaded / e.total) * 100);
+        document.getElementById('progressFill').style.width = pct + '%';
+        document.getElementById('progressText').textContent = file.name + ' - ' + pct + '%';
+      }
+    };
+    xhr.onload = () => {
+      document.getElementById('progressDiv').style.display = 'none';
+      if (xhr.status === 200) {
+        const f = JSON.parse(xhr.responseText);
+        document.getElementById('emptyMsg').style.display = 'none';
+        addFileToList(f);
+      }
+      resolve();
+    };
+    xhr.send(form);
+  });
+}
+
+async function deleteFile(id) {
+  if (!confirm('ایا غواړئ دا فایل حذف کړئ؟')) return;
+  await fetch('https://www.googleapis.com/drive/v3/files/' + id, {
+    method: 'DELETE',
+    headers: { Authorization: 'Bearer ' + accessToken }
+  });
+  const el = document.getElementById('file_' + id);
+  if (el) el.remove();
+  loadStorage();
+}
+</script>
+</body>
+</html>
